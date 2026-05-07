@@ -12,12 +12,15 @@ $active_sub = isset($_GET['sub']) ? $_GET['sub'] : "dashboard";
 
 $opd_filter = isset($_GET['opd']) ? trim((string)$_GET['opd']) : '';
 $nik_filter = isset($_GET['nik']) ? preg_replace('/\D+/', '', (string)$_GET['nik']) : '';
+$ked_filter = isset($_GET['kedinasan']) ? strtolower(trim((string)$_GET['kedinasan'])) : '';
+if (!in_array($ked_filter, ['', 'dinas', 'swasta'], true)) $ked_filter = '';
 $opd_sort = isset($_GET['sort_opd']) ? trim((string)$_GET['sort_opd']) : 'default';
 if (!in_array($opd_sort, ['default', 'opd_asc', 'opd_desc'], true)) $opd_sort = 'default';
 
 $db_q_extra = [];
 if ($opd_filter !== '') $db_q_extra['opd'] = $opd_filter;
 if ($nik_filter !== '') $db_q_extra['nik'] = $nik_filter;
+if ($ked_filter !== '') $db_q_extra['kedinasan'] = $ked_filter;
 if ($opd_sort !== 'default') $db_q_extra['sort_opd'] = $opd_sort;
 $db_qs_extra = $db_q_extra ? ('&' . http_build_query($db_q_extra)) : '';
 
@@ -635,12 +638,15 @@ if ($connected && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_
     $redir_p = max(1, (int)($_POST['p'] ?? ($_GET['p'] ?? 1)));
     $redir_opd = trim((string)($_POST['opd'] ?? $opd_filter));
     $redir_nik = preg_replace('/\D+/', '', (string)($_POST['nik'] ?? $nik_filter));
+    $redir_ked = strtolower(trim((string)($_POST['kedinasan'] ?? $ked_filter)));
+    if (!in_array($redir_ked, ['', 'dinas', 'swasta'], true)) $redir_ked = '';
     $redir_sort = trim((string)($_POST['sort_opd'] ?? $opd_sort));
     if (!in_array($redir_sort, ['default', 'opd_asc', 'opd_desc'], true)) $redir_sort = 'default';
 
     $redir_q_extra = [];
     if ($redir_opd !== '') $redir_q_extra['opd'] = $redir_opd;
     if ($redir_nik !== '') $redir_q_extra['nik'] = $redir_nik;
+    if ($redir_ked !== '') $redir_q_extra['kedinasan'] = $redir_ked;
     if ($redir_sort !== 'default') $redir_q_extra['sort_opd'] = $redir_sort;
     $redir_qs_extra = $redir_q_extra ? ('&' . http_build_query($redir_q_extra)) : '';
 
@@ -669,6 +675,10 @@ if ($nik_filter !== '') {
     $nik_esc = $conn->real_escape_string($nik_filter);
     // Allow partial search (mis. ketik 5-8 digit pertama) dan full 16 digit
     $where_parts[] = "pekerja_nik LIKE '%$nik_esc%'";
+}
+if ($ked_filter !== '') {
+    $ked_esc = $conn->real_escape_string($ked_filter);
+    $where_parts[] = "status_kedinasan = '$ked_esc'";
 }
 $where_sql = $where_parts ? ('WHERE ' . implode(' AND ', $where_parts)) : '';
 
@@ -1078,6 +1088,15 @@ $def_logo_pemda = salin_aslimas_to_url($branding['logo_pemda'] ?? '') ?: "https:
         </div>
 
         <div class="flex-1 min-w-0">
+            <label class="block text-xs font-bold text-slate-700 mb-2">Status Kedinasan</label>
+            <select name="kedinasan" class="input-premium appearance-none bg-white w-full">
+                <option value="" <?php echo $ked_filter === '' ? 'selected' : ''; ?>>Semua</option>
+                <option value="dinas" <?php echo $ked_filter === 'dinas' ? 'selected' : ''; ?>>Dinas</option>
+                <option value="swasta" <?php echo $ked_filter === 'swasta' ? 'selected' : ''; ?>>Swasta</option>
+            </select>
+        </div>
+
+        <div class="flex-1 min-w-0">
             <label class="block text-xs font-bold text-slate-700 mb-2">Filter Unit Kerja (OPD)</label>
             <select name="opd" class="input-premium appearance-none bg-white w-full">
                 <option value="">Semua OPD</option>
@@ -1141,6 +1160,9 @@ $def_logo_pemda = salin_aslimas_to_url($branding['logo_pemda'] ?? '') ?: "https:
                                                 <input type="hidden" name="p" value="<?php echo (int)$current_page_number; ?>">
                                                 <?php if ($nik_filter !== ''): ?>
                                                     <input type="hidden" name="nik" value="<?php echo htmlspecialchars($nik_filter); ?>">
+                                                <?php endif; ?>
+                                                <?php if ($ked_filter !== ''): ?>
+                                                    <input type="hidden" name="kedinasan" value="<?php echo htmlspecialchars($ked_filter); ?>">
                                                 <?php endif; ?>
                                                 <?php if ($opd_filter !== ''): ?>
                                                     <input type="hidden" name="opd" value="<?php echo htmlspecialchars($opd_filter); ?>">

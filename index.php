@@ -11,11 +11,25 @@ $msg = isset($_GET['msg']) ? $_GET['msg'] : "";
 $active_tab = isset($_GET['tab']) ? $_GET['tab'] : "home";
 
 if ($connected && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_pengajuan'])) {
-    $asn_nama = $conn->real_escape_string($_POST['asn_nama']);
-    $asn_nip = $conn->real_escape_string($_POST['asn_nip']);
-    $asn_opd = $conn->real_escape_string($_POST['asn_opd']);
-    $asn_jabatan = $conn->real_escape_string($_POST['asn_jabatan']);
-    $asn_hp = $conn->real_escape_string($_POST['asn_hp']);
+    $status_kedinasan_raw = strtolower(trim((string)($_POST['status_kedinasan'] ?? 'dinas')));
+    $status_kedinasan = ($status_kedinasan_raw === 'swasta') ? 'swasta' : 'dinas';
+
+    // Mapping penyimpanan:
+    // - dinas: asn_* seperti sebelumnya
+    // - swasta: asn_opd = nama perusahaan, asn_nama = nama PIC, asn_jabatan = jabatan PIC, asn_hp = WA PIC, asn_nip = '-'
+    if ($status_kedinasan === 'swasta') {
+        $asn_opd = $conn->real_escape_string((string)($_POST['swasta_nama_perusahaan'] ?? ''));
+        $asn_nama = $conn->real_escape_string((string)($_POST['swasta_nama'] ?? ''));
+        $asn_jabatan = $conn->real_escape_string((string)($_POST['swasta_jabatan'] ?? ''));
+        $asn_hp = $conn->real_escape_string((string)($_POST['swasta_hp'] ?? ''));
+        $asn_nip = $conn->real_escape_string('-');
+    } else {
+        $asn_nama = $conn->real_escape_string((string)($_POST['asn_nama'] ?? ''));
+        $asn_nip = $conn->real_escape_string((string)($_POST['asn_nip'] ?? ''));
+        $asn_opd = $conn->real_escape_string((string)($_POST['asn_opd'] ?? ''));
+        $asn_jabatan = $conn->real_escape_string((string)($_POST['asn_jabatan'] ?? ''));
+        $asn_hp = $conn->real_escape_string((string)($_POST['asn_hp'] ?? ''));
+    }
 
     if (!is_dir('uploads')) mkdir('uploads', 0777, true);
     if (!is_dir('uploads/ktp')) mkdir('uploads/ktp', 0777, true);
@@ -60,8 +74,8 @@ if ($connected && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_p
         
         if (!empty($w_nama)) {
             $w_ktp_sql = $w_ktp_filename !== '' ? ("'" . $conn->real_escape_string($w_ktp_filename) . "'") : "NULL";
-            $sql = "INSERT INTO salin_aslimas_data (asn_nama, asn_nip, asn_opd, asn_jabatan, asn_hp, pekerja_nama, pekerja_nik, pekerja_ttl, pekerja_jk, pekerja_job, pekerja_hp, pekerja_ktp) 
-                    VALUES ('$asn_nama', '$asn_nip', '$asn_opd', '$asn_jabatan', '$asn_hp', '$w_nama', '$w_nik', '$w_ttl', '$w_jk', '$w_job', '$w_hp', $w_ktp_sql)";
+            $sql = "INSERT INTO salin_aslimas_data (status_kedinasan, asn_nama, asn_nip, asn_opd, asn_jabatan, asn_hp, pekerja_nama, pekerja_nik, pekerja_ttl, pekerja_jk, pekerja_job, pekerja_hp, pekerja_ktp) 
+                    VALUES ('$status_kedinasan', '$asn_nama', '$asn_nip', '$asn_opd', '$asn_jabatan', '$asn_hp', '$w_nama', '$w_nik', '$w_ttl', '$w_jk', '$w_job', '$w_hp', $w_ktp_sql)";
             if ($conn->query($sql)) $success_count++;
         }
     }
@@ -197,7 +211,7 @@ textarea.input-premium{
                     <img src="<?php echo $def_logo_pemda; ?>" alt="Pemda" class="h-10 md:h-12 object-contain drop-shadow-sm">
                     <div class="border-l-2 border-slate-200 pl-4">
                         <h1 class="font-heading text-lg md:text-xl font-extrabold text-slate-900 leading-none tracking-tight">Salin Aslimas</h1>
-                        <p class="text-[10px] md:text-xs text-brand-600 font-semibold tracking-wider uppercase mt-1">ASN Peduli Pekerja</p>
+                        <p class="text-[10px] md:text-xs text-brand-600 font-semibold tracking-wider uppercase mt-1">Sadewo Lintarti ASN Peduli Pekerja Rentan Banyumas</p>
                     </div>
                 </div>
 
@@ -250,7 +264,7 @@ textarea.input-premium{
                 <h1 class="font-heading text-2xl md:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
                     Satu ASN,<br>
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-emerald-400">
-                        Satu Pekerja Terlindungi
+                        Satu Pekerja Rentan Terlindungi
                     </span>
                 </h1>
 
@@ -460,12 +474,28 @@ textarea.input-premium{
                     <div>
                         <div class="flex items-center gap-4 mb-6">
                             <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 font-bold">1</div>
-                            <h3 class="font-heading text-xl font-bold text-slate-800">Identitas ASN Pengusul</h3>
+                            <h3 class="font-heading text-xl font-bold text-slate-800">Identitas Pengusul</h3>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pl-0 md:pl-14">
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Lengkap</label><input type="text" name="asn_nama" required class="input-premium" placeholder="Cth: Budi Santoso"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">NIP</label><input type="text" name="asn_nip" required class="input-premium" placeholder="18 Digit NIP"></div>
-                            <div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Status Kedinasan</label>
+                                <select id="status_kedinasan" name="status_kedinasan" class="input-premium">
+                                    <option value="dinas" selected>Dinas</option>
+                                    <option value="swasta">Swasta</option>
+                                </select>
+                                <p class="text-[11px] text-slate-400 mt-1">Pilih <b>Dinas</b> untuk ASN, atau <b>Swasta</b> untuk perusahaan (PT/CV).</p>
+                            </div>
+
+                            <!-- DINAS -->
+                            <div data-kedinasan="dinas">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Lengkap (ASN)</label>
+                                <input type="text" name="asn_nama" required class="input-premium" placeholder="Cth: Budi Santoso">
+                            </div>
+                            <div data-kedinasan="dinas">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">NIP</label>
+                                <input type="text" name="asn_nip" required class="input-premium" placeholder="18 Digit NIP">
+                            </div>
+                            <div data-kedinasan="dinas">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Unit Kerja (OPD)</label>
                                 <select name="asn_opd" required class="input-premium appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:0.6rem_auto]">
                                     <option value="">Pilih Unit Kerja</option>
@@ -474,8 +504,32 @@ textarea.input-premium{
                                     <?php endwhile; endif; ?>
                                 </select>
                             </div>
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Jabatan</label><input type="text" name="asn_jabatan" required class="input-premium" placeholder="Staf / Kasi / Kabid"></div>
-                            <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nomor HP/WhatsApp</label><input type="text" name="asn_hp" required class="input-premium" placeholder="0812..."></div>
+                            <div data-kedinasan="dinas">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Jabatan</label>
+                                <input type="text" name="asn_jabatan" required class="input-premium" placeholder="Staf / Kasi / Kabid">
+                            </div>
+                            <div class="md:col-span-2" data-kedinasan="dinas">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nomor HP/WhatsApp</label>
+                                <input type="text" name="asn_hp" required class="input-premium" placeholder="0812...">
+                            </div>
+
+                            <!-- SWASTA -->
+                            <div class="hidden" data-kedinasan="swasta">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Perusahaan (PT/CV)</label>
+                                <input type="text" name="swasta_nama_perusahaan" required class="input-premium" placeholder="Cth: PT Maju Jaya / CV Sejahtera">
+                            </div>
+                            <div class="hidden" data-kedinasan="swasta">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama PIC/Pengusul</label>
+                                <input type="text" name="swasta_nama" required class="input-premium" placeholder="Cth: Andi Wijaya">
+                            </div>
+                            <div class="hidden" data-kedinasan="swasta">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Jabatan</label>
+                                <input type="text" name="swasta_jabatan" required class="input-premium" placeholder="Cth: Direktur / HRD / Supervisor">
+                            </div>
+                            <div class="hidden md:col-span-2" data-kedinasan="swasta">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nomor WhatsApp</label>
+                                <input type="text" name="swasta_hp" required class="input-premium" placeholder="0812...">
+                            </div>
                         </div>
                     </div>
 
@@ -550,6 +604,15 @@ textarea.input-premium{
             $queryasn = "SELECT SUM(jumlah_asn) as total_asn FROM ref_opd";
             $result_summary_asn = $conn->query($queryasn);
             $summary_asn = $result_summary_asn->fetch_assoc();
+
+            // Rekap pengajuan (khusus kedinasan = dinas)
+            $query_opd_mengajukan = "SELECT COUNT(DISTINCT asn_opd) AS opd_mengajukan FROM salin_aslimas_data WHERE status_kedinasan = 'dinas'";
+            $res_opd_mengajukan = $conn->query($query_opd_mengajukan);
+            $sum_opd_mengajukan = $res_opd_mengajukan ? $res_opd_mengajukan->fetch_assoc() : [];
+
+            $query_asn_mengajukan = "SELECT COUNT(DISTINCT asn_nip) AS asn_mengajukan FROM salin_aslimas_data WHERE status_kedinasan = 'dinas' AND asn_nip <> '' AND asn_nip <> '-'";
+            $res_asn_mengajukan = $conn->query($query_asn_mengajukan);
+            $sum_asn_mengajukan = $res_asn_mengajukan ? $res_asn_mengajukan->fetch_assoc() : [];
             
             $querypekerja = "SELECT COUNT(id) as total_pekerja FROM salin_aslimas_data";
             $result_summary_pekerja = $conn->query($querypekerja);
@@ -562,6 +625,8 @@ textarea.input-premium{
             // Fallback jika data kosong
             $tot_opd = $summary['total_opd'] ?? 0;
             $tot_asn = $summary_asn['total_asn'] ?? 0;
+            $tot_opd_mengajukan = $sum_opd_mengajukan['opd_mengajukan'] ?? 0;
+            $tot_asn_mengajukan = $sum_asn_mengajukan['asn_mengajukan'] ?? 0;
             $tot_dimasukkan = $summary_pekerja['total_pekerja'] ?? 0;
             $tot_terlindungi = $summary_pekerja_terlindungi['terlindungi'] ?? 0;
             
@@ -588,8 +653,11 @@ textarea.input-premium{
                     <i class="fas fa-building"></i>
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-slate-500">Total OPD</p>
-                    <h4 class="text-xl font-bold text-slate-800"><?php echo number_format($tot_opd, 0, ',', '.'); ?></h4>
+                    <p class="text-sm font-medium text-slate-500">OPD Mengajukan</p>
+                    <h4 class="text-xl font-bold text-slate-800">
+                        <?php echo number_format((int)$tot_opd_mengajukan, 0, ',', '.'); ?>
+                        <span class="text-slate-400 font-semibold">/ <?php echo number_format((int)$tot_opd, 0, ',', '.'); ?></span>
+                    </h4>
                 </div>
             </div>
 
@@ -598,8 +666,11 @@ textarea.input-premium{
                     <i class="fas fa-users"></i>
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-slate-500">Total ASN</p>
-                    <h4 class="text-xl font-bold text-slate-800"><?php echo number_format($tot_asn, 0, ',', '.'); ?></h4>
+                    <p class="text-sm font-medium text-slate-500">ASN Mengajukan</p>
+                    <h4 class="text-xl font-bold text-slate-800">
+                        <?php echo number_format((int)$tot_asn_mengajukan, 0, ',', '.'); ?>
+                        <span class="text-slate-400 font-semibold">/ <?php echo number_format((int)$tot_asn, 0, ',', '.'); ?></span>
+                    </h4>
                 </div>
             </div>
 
@@ -729,6 +800,37 @@ textarea.input-premium{
             history.replaceState(null, null, url);
         }
 
+        function initKedinasanToggle() {
+            const sel = document.getElementById('status_kedinasan');
+            if (!sel) return;
+
+            const blocks = Array.from(document.querySelectorAll('[data-kedinasan]'));
+            const apply = () => {
+                const mode = (sel.value === 'swasta') ? 'swasta' : 'dinas';
+                blocks.forEach(b => {
+                    const isOn = b.getAttribute('data-kedinasan') === mode;
+                    b.classList.toggle('hidden', !isOn);
+                    b.querySelectorAll('input, select, textarea').forEach(el => {
+                        if (el.hasAttribute('required')) {
+                            el.required = isOn;
+                        } else {
+                            // Jika sebelumnya required tetapi atributnya terhapus oleh browser/DOM, biarkan.
+                            // (Kita hanya toggle yang memang bertanda required di HTML)
+                        }
+                        if (!isOn && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+                            el.value = '';
+                        }
+                        if (!isOn && el instanceof HTMLSelectElement) {
+                            el.selectedIndex = 0;
+                        }
+                    });
+                });
+            };
+
+            sel.addEventListener('change', apply);
+            apply();
+        }
+
         let workerIdx = 1;
         function addWorker() {
             workerIdx++;
@@ -821,11 +923,11 @@ textarea.input-premium{
                         </div>
                         <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                             <div class="${innerBoxCls} border rounded-xl p-3">
-                                <p class="text-xs ${labelCls} font-semibold">Unit Kerja (OPD)</p>
+                                <p class="text-xs ${labelCls} font-semibold">Unit Kerja</p>
                                 <p class="font-medium ${valueCls} mt-0.5">${d.asn_opd || '-'}</p>
                             </div>
                             <div class="${innerBoxCls} border rounded-xl p-3">
-                                <p class="text-xs ${labelCls} font-semibold">ASN Pengusul Pekerja</p>
+                                <p class="text-xs ${labelCls} font-semibold">Pengusul Pekerja</p>
                                 <p class="font-medium ${valueCls} mt-0.5">${(d.asn_nama && String(d.asn_nama).trim()) ? String(d.asn_nama).trim() : '-'}</p>
                             </div>
                         </div>
@@ -866,6 +968,7 @@ textarea.input-premium{
             const tab = urlParams.get('tab') || 'home';
             showTab(tab);
             initOpdSearch();
+            initKedinasanToggle();
         }
     </script>
 </body>

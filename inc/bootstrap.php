@@ -4,15 +4,15 @@
  */
 
 // --- KONFIGURASI DATABASE ---
-// $db_host = "localhost";
-// $db_user = "root";
-// $db_pass = "";
-// $db_name = "byfd1777_db_asnpedulibms";
-
 $db_host = "localhost";
 $db_user = "root"; 
 $db_pass = "";
 $db_name = "byfd1777_db_asnpedulibms"; 
+
+// $db_host = "localhost";
+// $db_user = "bpjy7941_keris_user"; 
+// $db_pass = "keris_user";
+// $db_name = "bpjy7941_asnpeduli"; 
 
 mysqli_report(MYSQLI_REPORT_OFF);
 $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
@@ -69,6 +69,7 @@ if ($connected) {
     // --- AUTO-SETUP TABLES (PUBLIC CORE) ---
     $conn->query("CREATE TABLE IF NOT EXISTS salin_aslimas_data (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        status_kedinasan ENUM('dinas','swasta') NOT NULL DEFAULT 'dinas',
         asn_nama VARCHAR(100) NOT NULL,
         asn_nip VARCHAR(30) NOT NULL,
         asn_opd VARCHAR(100) NOT NULL,
@@ -88,6 +89,11 @@ if ($connected) {
     )");
 
     // Backward-compatible: add missing column if table already exists.
+    $kedCheck = $conn->query("SHOW COLUMNS FROM salin_aslimas_data LIKE 'status_kedinasan'");
+    if ($kedCheck && $kedCheck->num_rows === 0) {
+        $conn->query("ALTER TABLE salin_aslimas_data ADD COLUMN status_kedinasan ENUM('dinas','swasta') NOT NULL DEFAULT 'dinas' AFTER id");
+    }
+
     $colCheck = $conn->query("SHOW COLUMNS FROM salin_aslimas_data LIKE 'pekerja_ktp'");
     if ($colCheck && $colCheck->num_rows === 0) {
         $conn->query("ALTER TABLE salin_aslimas_data ADD COLUMN pekerja_ktp VARCHAR(255) DEFAULT NULL");
