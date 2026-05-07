@@ -656,7 +656,7 @@ textarea.input-premium{
                     <p class="text-sm font-medium text-slate-500">OPD Mengajukan</p>
                     <h4 class="text-xl font-bold text-slate-800">
                         <?php echo number_format((int)$tot_opd_mengajukan, 0, ',', '.'); ?>
-                        <span class="text-slate-400 font-semibold">/ <?php echo number_format((int)$tot_opd, 0, ',', '.'); ?></span>
+                        <!-- <span class="text-slate-400 font-semibold">/ <?php echo number_format((int)$tot_opd, 0, ',', '.'); ?></span> -->
                     </h4>
                 </div>
             </div>
@@ -669,7 +669,7 @@ textarea.input-premium{
                     <p class="text-sm font-medium text-slate-500">ASN Mengajukan</p>
                     <h4 class="text-xl font-bold text-slate-800">
                         <?php echo number_format((int)$tot_asn_mengajukan, 0, ',', '.'); ?>
-                        <span class="text-slate-400 font-semibold">/ <?php echo number_format((int)$tot_asn, 0, ',', '.'); ?></span>
+                        <!-- <span class="text-slate-400 font-semibold">/ <?php echo number_format((int)$tot_asn, 0, ',', '.'); ?></span> -->
                     </h4>
                 </div>
             </div>
@@ -710,7 +710,7 @@ textarea.input-premium{
                         <th class="py-4 px-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Jumlah ASN</th>
                         <th class="py-4 px-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Partisipasi ASN</th>
                         <th class="py-4 px-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Total Pekerja Terlindungi</th>
-                        <th class="py-4 px-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Pekerja OPD Terlindungi</th>
+                        <th class="py-4 px-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Presentese Partisipasi</th>
                     </tr>
                 </thead>
                 <tbody id="opdTableBody" class="divide-y divide-slate-100">
@@ -727,7 +727,12 @@ textarea.input-premium{
                         <td class="py-4 px-6 text-center">
                             <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-100">
                         <i class="fas fa-check-circle text-emerald-500"></i>
-                        <?php echo (int)($row['pekerja_dari_opd'] ?? 0); ?> Orang
+                        <?php
+                            $jumlah_asn_opd = (int)($row['jumlah_asn'] ?? 0);
+                            $partisipasi_asn = (int)($row['total_asn'] ?? 0);
+                            $persentase = $jumlah_asn_opd > 0 ? (($partisipasi_asn / $jumlah_asn_opd) * 100) : 0;
+                        ?>
+                        <?php echo number_format($persentase, 2, ',', '.'); ?>%
                             </span>
                         </td>
                     </tr>
